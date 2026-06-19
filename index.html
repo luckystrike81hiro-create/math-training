@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>中1数学トレーニング</title>
+<style>
+  :root{
+    --bg:#f4f8ff; --card:#ffffff; --ink:#26334d; --sub:#7a89a6;
+    --main:#4a7dff; --main-d:#3563e0; --ok:#2bb673; --ng:#ff6b6b;
+    --warm:#ffb648; --line:#e3eaf7;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  body{
+    margin:0; font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+    background:var(--bg); color:var(--ink); padding:16px;
+    display:flex; justify-content:center;
+  }
+  .wrap{width:100%; max-width:520px;}
+  header{text-align:center; margin:8px 0 18px;}
+  header h1{font-size:1.4rem; margin:0; letter-spacing:.02em;}
+  header p{color:var(--sub); font-size:.8rem; margin:4px 0 0;}
+  .card{
+    background:var(--card); border-radius:18px; padding:20px;
+    box-shadow:0 6px 20px rgba(60,90,160,.10); border:1px solid var(--line);
+  }
+  /* メニュー */
+  .menu-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .unit-btn{
+    border:none; border-radius:16px; padding:18px 12px; cursor:pointer;
+    background:var(--card); border:2px solid var(--line);
+    font-size:1rem; font-weight:700; color:var(--ink); text-align:center;
+    transition:transform .08s, border-color .15s; line-height:1.4;
+  }
+  .unit-btn:active{transform:scale(.96);}
+  .unit-btn .emoji{display:block; font-size:1.8rem; margin-bottom:6px;}
+  .unit-btn .lv{display:block; font-size:.7rem; color:var(--sub); font-weight:500; margin-top:4px;}
+  .unit-btn:hover{border-color:var(--main);}
+  /* 問題画面 */
+  .topbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;}
+  .back{background:none; border:none; color:var(--sub); font-size:.85rem; cursor:pointer; padding:6px;}
+  .stat{font-size:.8rem; color:var(--sub);}
+  .stat b{color:var(--main); font-size:1rem;}
+  .streak{color:var(--warm);}
+  .qnum{font-size:.75rem; color:var(--sub); margin-bottom:6px;}
+  .question{
+    font-size:1.7rem; font-weight:700; text-align:center; margin:18px 0 8px;
+    line-height:1.5; word-break:break-word;
+  }
+  .hint{text-align:center; color:var(--sub); font-size:.8rem; min-height:1.2em;}
+  .answer-row{display:flex; gap:8px; margin:18px 0 8px;}
+  input.ans{
+    flex:1; font-size:1.4rem; text-align:center; padding:12px; border-radius:12px;
+    border:2px solid var(--line); outline:none; font-weight:700; color:var(--ink);
+  }
+  input.ans:focus{border-color:var(--main);}
+  .btn{
+    border:none; border-radius:12px; padding:0 22px; font-size:1.05rem; font-weight:700;
+    background:var(--main); color:#fff; cursor:pointer; transition:transform .08s;
+  }
+  .btn:active{transform:scale(.95);}
+  .btn-wide{width:100%; padding:14px; margin-top:10px;}
+  .feedback{
+    text-align:center; min-height:2.4em; margin-top:8px; font-weight:700; font-size:1.1rem;
+  }
+  .feedback.ok{color:var(--ok);}
+  .feedback.ng{color:var(--ng);}
+  .feedback .explain{display:block; font-size:.85rem; color:var(--sub); font-weight:500; margin-top:6px; line-height:1.5;}
+  .pad{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:6px;}
+  .pad button{
+    padding:14px 0; font-size:1.2rem; font-weight:700; border-radius:12px;
+    border:2px solid var(--line); background:#fff; cursor:pointer; color:var(--ink);
+  }
+  .pad button:active{background:var(--bg);}
+  .pad .wide{grid-column:span 1;}
+  .footer-note{text-align:center; color:var(--sub); font-size:.7rem; margin-top:14px;}
+  .praise{
+    position:fixed; top:30%; left:50%; transform:translateX(-50%);
+    font-size:2rem; font-weight:800; color:var(--warm); pointer-events:none;
+    opacity:0; transition:opacity .2s;
+  }
+  .praise.show{opacity:1; animation:pop .6s;}
+  @keyframes pop{0%{transform:translateX(-50%) scale(.5);}50%{transform:translateX(-50%) scale(1.2);}100%{transform:translateX(-50%) scale(1);}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>📐 中1数学トレーニング</h1>
+    <p>基礎をコツコツ。まちがえても大丈夫！　v0.1</p>
+  </header>
+
+  <!-- メニュー -->
+  <div id="menu" class="card">
+    <div class="menu-grid" id="menuGrid"></div>
+    <p class="footer-note">単元をえらんでスタート！</p>
+  </div>
+
+  <!-- 問題画面 -->
+  <div id="quiz" class="card" style="display:none;">
+    <div class="topbar">
+      <button class="back" onclick="goMenu()">← もどる</button>
+      <span class="stat">正解 <b id="score">0</b> / <span id="total">0</span>　<span class="streak" id="streak"></span></span>
+    </div>
+    <div class="qnum" id="unitName"></div>
+    <div class="question" id="question">…</div>
+    <div class="hint" id="hint"></div>
+    <div class="answer-row">
+      <input class="ans" id="ans" type="text" inputmode="text" autocomplete="off" placeholder="こたえ">
+      <button class="btn" id="checkBtn" onclick="check()">OK</button>
+    </div>
+    <div class="pad" id="pad"></div>
+    <div class="feedback" id="feedback"></div>
+    <button class="btn btn-wide" id="nextBtn" style="display:none;" onclick="nextQ()">つぎの問題 →</button>
+  </div>
+</div>
+<div class="praise" id="praise"></div>
+
+<script>
+/* ===== 単元定義 ===== */
+const UNITS = [
+  {id:"seisu",  name:"正負の数",     emoji:"➕➖", lv:"たし算・ひき算・かけ算", gen:genSeisu},
+  {id:"kakezan",name:"正負のかけ算・わり算", emoji:"✖️➗", lv:"符号に注意", gen:genKake},
+  {id:"moji",   name:"文字式の計算",  emoji:"🔤", lv:"同類項をまとめる", gen:genMoji},
+  {id:"dainiu", name:"式の値（代入）", emoji:"🎯", lv:"x に数を入れる", gen:genDainyu},
+  {id:"houtei", name:"一次方程式",     emoji:"⚖️", lv:"x を求める", gen:genHoutei},
+  {id:"hirei",  name:"比例",          emoji:"📈", lv:"y=ax の a を求める", gen:genHirei},
+];
+
+/* ===== ユーティリティ ===== */
+const ri = (a,b)=>Math.floor(Math.random()*(b-a+1))+a; // a〜b整数
+const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+const sign = n => (n<0? "("+n+")" : ""+n); // 負の数はカッコ表示
+
+/* ===== 問題ジェネレーター ===== */
+// 各genは {q:表示文, a:正解(文字列), hint:ヒント, explain:解説} を返す
+
+function genSeisu(){
+  const op = pick(["+","-"]);
+  let a = ri(-9,9), b = ri(-9,9);
+  let ans, q;
+  if(op==="+"){ ans = a+b; q = `${a} + ${sign(b)}`; }
+  else { ans = a-b; q = `${a} − ${sign(b)}`; }
+  return {q:q+" =", a:String(ans), hint:"符号（＋−）に気をつけて",
+    explain:`答えは ${ans}。マイナスをひくのはたすのと同じ、マイナスをたすのは小さくなる、と覚えよう。`};
+}
+
+function genKake(){
+  const op = pick(["×","÷"]);
+  let a, b, ans, q;
+  if(op==="×"){ a=ri(-9,9); b=ri(-9,9); ans=a*b; q=`${sign(a)} × ${sign(b)}`; }
+  else { // わり切れるように作る
+    b = pick([-9,-8,-6,-5,-4,-3,-2,2,3,4,5,6,8,9]);
+    ans = ri(-9,9);
+    a = b*ans; q=`${sign(a)} ÷ ${sign(b)}`;
+  }
+  return {q:q+" =", a:String(ans), hint:"同じ符号どうしは＋、ちがう符号は−",
+    explain:`答えは ${ans}。符号のルール：(＋)×(＋)=＋、(−)×(−)=＋、(＋)×(−)=−。`};
+}
+
+function genMoji(){
+  // ax + b + cx + d → まとめる
+  let a=ri(1,6), c=ri(1,6), b=ri(-6,6), d=ri(-6,6);
+  const xt = a+c, ct = b+d;
+  const q = `${a}x ${b>=0?"+ "+b:"− "+(-b)} + ${c}x ${d>=0?"+ "+d:"− "+(-d)}`;
+  let ans;
+  if(ct===0) ans = `${xt}x`;
+  else ans = `${xt}x${ct>0?"+"+ct:ct}`;
+  return {q:"次を計算（同類項をまとめる）:\n"+q, a:ans.replace(/\s/g,""),
+    hint:"x のついた項どうし、数字どうしをまとめる　例: 5x+3",
+    explain:`xの項：${a}x+${c}x=${xt}x、数の項：${b}+${d}=${ct}。 答え ${ans}`};
+}
+
+function genDainyu(){
+  const a=ri(2,5), b=ri(-5,5), x=ri(-4,5);
+  const val = a*x+b;
+  const q = `x=${x} のとき、 ${a}x ${b>=0?"+ "+b:"− "+(-b)} の値は？`;
+  return {q, a:String(val), hint:"x のところに数を入れて計算",
+    explain:`${a}×(${x})${b>=0?"+"+b:b} = ${a*x}${b>=0?"+"+b:b} = ${val}`};
+}
+
+function genHoutei(){
+  // ax + b = c  (xは整数になるように)
+  const a=ri(2,6), x=ri(-5,6), b=ri(-9,9);
+  const c=a*x+b;
+  const q = `${a}x ${b>=0?"+ "+b:"− "+(-b)} = ${c}`;
+  return {q:q+"\nx = ?", a:String(x), hint:"まず数を右へ移項、最後にaでわる",
+    explain:`${a}x = ${c}${b>=0?"−"+b:"+"+(-b)} = ${c-b}、 x = ${c-b}÷${a} = ${x}`};
+}
+
+function genHirei(){
+  // y = ax、 点(x,y)を与えてaを求める
+  const a=pick([-4,-3,-2,2,3,4,5]), x=ri(2,6);
+  const y=a*x;
+  const q = `y は x に比例し、 x=${x} のとき y=${y}。\n比例定数 a は？  (y=ax)`;
+  return {q, a:String(a), hint:"a = y ÷ x",
+    explain:`a = y÷x = ${y}÷${x} = ${a}。 だから y=${a}x`};
+}
+
+/* ===== 状態 ===== */
+let cur=null, curUnit=null, score=0, total=0, streak=0, answered=false;
+
+/* ===== メニュー描画 ===== */
+function buildMenu(){
+  const g = document.getElementById("menuGrid");
+  g.innerHTML = "";
+  UNITS.forEach(u=>{
+    const b = document.createElement("button");
+    b.className="unit-btn";
+    b.innerHTML = `<span class="emoji">${u.emoji}</span>${u.name}<span class="lv">${u.lv}</span>`;
+    b.onclick = ()=>startUnit(u);
+    g.appendChild(b);
+  });
+}
+
+function startUnit(u){
+  curUnit=u; score=0; total=0; streak=0;
+  document.getElementById("menu").style.display="none";
+  document.getElementById("quiz").style.display="block";
+  document.getElementById("unitName").textContent = u.emoji+" "+u.name;
+  buildPad(u.id);
+  nextQ();
+}
+
+function goMenu(){
+  document.getElementById("quiz").style.display="none";
+  document.getElementById("menu").style.display="block";
+}
+
+/* ===== テンキー（符号・xボタン付き） ===== */
+function buildPad(unitId){
+  const pad = document.getElementById("pad");
+  const needX = (unitId==="moji"); // 文字式だけ x を入力に使う
+  const keys = ["7","8","9","4","5","6","1","2","3","-","0","⌫"];
+  pad.innerHTML="";
+  keys.forEach(k=>{
+    const b=document.createElement("button");
+    b.textContent = k;
+    b.onclick = ()=>padInput(k);
+    pad.appendChild(b);
+  });
+  if(needX){
+    const bx=document.createElement("button");
+    bx.textContent="x"; bx.onclick=()=>padInput("x");
+    pad.appendChild(bx);
+  }
+}
+function padInput(k){
+  const inp=document.getElementById("ans");
+  if(k==="⌫"){ inp.value=inp.value.slice(0,-1); }
+  else { inp.value += k; }
+  inp.focus();
+}
+
+/* ===== 出題 ===== */
+function nextQ(){
+  answered=false;
+  cur = curUnit.gen();
+  document.getElementById("question").textContent = cur.q;
+  document.getElementById("hint").textContent = cur.hint || "";
+  const inp=document.getElementById("ans");
+  inp.value=""; inp.disabled=false; inp.focus();
+  document.getElementById("feedback").textContent="";
+  document.getElementById("feedback").className="feedback";
+  document.getElementById("nextBtn").style.display="none";
+  document.getElementById("checkBtn").style.display="";
+}
+
+function norm(s){ return s.replace(/\s/g,"").replace(/＋/g,"+").replace(/−/g,"-").replace(/ｘ|Ｘ|X/g,"x"); }
+
+function check(){
+  if(answered) return;
+  const inp=document.getElementById("ans");
+  const user = norm(inp.value);
+  if(user===""){ inp.focus(); return; }
+  answered=true; total++;
+  const fb=document.getElementById("feedback");
+  const correct = norm(cur.a);
+  if(user===correct){
+    score++; streak++;
+    fb.className="feedback ok";
+    fb.innerHTML = pick(["せいかい！🎉","よくできました！⭐","その調子！💪","バッチリ！✨"]) +
+      `<span class="explain">${cur.explain}</span>`;
+    showPraise();
+  } else {
+    streak=0;
+    fb.className="feedback ng";
+    fb.innerHTML = `おしい！ 正解は <u>${cur.a}</u>` +
+      `<span class="explain">${cur.explain}</span>`;
+  }
+  inp.disabled=true;
+  updateStat();
+  document.getElementById("checkBtn").style.display="none";
+  document.getElementById("nextBtn").style.display="";
+  document.getElementById("nextBtn").focus();
+}
+
+function updateStat(){
+  document.getElementById("score").textContent=score;
+  document.getElementById("total").textContent=total;
+  const s=document.getElementById("streak");
+  s.textContent = streak>=2 ? `🔥${streak}連続！` : "";
+}
+
+function showPraise(){
+  if(streak<3) return;
+  const p=document.getElementById("praise");
+  p.textContent = streak>=5 ? "天才！🌟" : "ナイス！🔥";
+  p.classList.add("show");
+  setTimeout(()=>p.classList.remove("show"),700);
+}
+
+/* Enterキー対応 */
+document.getElementById("ans").addEventListener("keydown",e=>{
+  if(e.key==="Enter") check();
+});
+document.addEventListener("keydown",e=>{
+  if(e.key==="Enter" && answered) nextQ();
+});
+
+buildMenu();
+</script>
+</body>
+</html>
