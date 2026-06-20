@@ -10,7 +10,7 @@
     --main:#4a7dff; --main-d:#3563e0; --ok:#2bb673; --ng:#ff6b6b;
     --warm:#ffb648; --line:#e3eaf7;
   }
-  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; touch-action:manipulation;}
   body{
     margin:0; font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
     background:var(--bg); color:var(--ink); padding:16px;
@@ -87,7 +87,7 @@
 <div class="wrap">
   <header>
     <h1>📐 中1数学トレーニング</h1>
-    <p>基礎をコツコツ。まちがえても大丈夫！　v0.1</p>
+    <p>基礎をコツコツ。まちがえても大丈夫！　v0.2</p>
   </header>
 
   <!-- メニュー -->
@@ -106,7 +106,7 @@
     <div class="question" id="question">…</div>
     <div class="hint" id="hint"></div>
     <div class="answer-row">
-      <input class="ans" id="ans" type="text" inputmode="text" autocomplete="off" placeholder="こたえ">
+      <input class="ans" id="ans" type="text" inputmode="none" autocomplete="off" placeholder="こたえ">
       <button class="btn" id="checkBtn" onclick="check()">OK</button>
     </div>
     <div class="pad" id="pad"></div>
