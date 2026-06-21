@@ -100,7 +100,7 @@
 <div class="wrap">
   <header>
     <h1>📐 中1数学トレーニング</h1>
-    <p>基礎をコツコツ。まちがえても大丈夫！　v0.3</p>
+    <p>基礎をコツコツ。まちがえても大丈夫！　v0.4</p>
   </header>
 
   <!-- メニュー -->
@@ -353,11 +353,11 @@ function showResult(){
 function buildPad(unitId){
   const pad = document.getElementById("pad");
   const needX = (unitId==="moji"); // 文字式だけ x を入力に使う
-  const keys = ["7","8","9","4","5","6","1","2","3","-","0","⌫"];
+  const keys = ["7","8","9","4","5","6","1","2","3","±","0","⌫"];
   pad.innerHTML="";
   keys.forEach(k=>{
     const b=document.createElement("button");
-    b.textContent = k;
+    b.textContent = (k==="±") ? "＋/−" : k;
     b.onclick = ()=>padInput(k);
     pad.appendChild(b);
   });
@@ -370,6 +370,12 @@ function buildPad(unitId){
 function padInput(k){
   const inp=document.getElementById("ans");
   if(k==="⌫"){ inp.value=inp.value.slice(0,-1); }
+  else if(k==="±"){
+    const v=inp.value, last=v.slice(-1);
+    if(last==="+")      inp.value=v.slice(0,-1)+"-"; // ＋→−
+    else if(last==="-") inp.value=v.slice(0,-1)+"+"; // −→＋
+    else                inp.value=v+"-";             // それ以外はまず−を入れる
+  }
   else { inp.value += k; }
   inp.focus();
 }
