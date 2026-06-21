@@ -50,13 +50,14 @@
   .hint{text-align:center; color:var(--sub); font-size:.8rem; min-height:1.2em;}
   .answer-row{display:flex; gap:8px; margin:18px 0 8px;}
   input.ans{
-    flex:1; font-size:1.4rem; text-align:center; padding:12px; border-radius:12px;
+    flex:1; min-width:0; font-size:1.4rem; text-align:center; padding:12px; border-radius:12px;
     border:2px solid var(--line); outline:none; font-weight:700; color:var(--ink);
   }
   input.ans:focus{border-color:var(--main);}
   .btn{
     border:none; border-radius:12px; padding:0 22px; font-size:1.05rem; font-weight:700;
     background:var(--main); color:#fff; cursor:pointer; transition:transform .08s;
+    flex-shrink:0; white-space:nowrap;
   }
   .btn:active{transform:scale(.95);}
   .btn-wide{width:100%; padding:14px; margin-top:10px;}
@@ -100,7 +101,7 @@
 <div class="wrap">
   <header>
     <h1>📐 中1数学トレーニング</h1>
-    <p>基礎をコツコツ。まちがえても大丈夫！　v0.4</p>
+    <p>基礎をコツコツ。まちがえても大丈夫！　v0.5</p>
   </header>
 
   <!-- メニュー -->
@@ -357,7 +358,7 @@ function buildPad(unitId){
   pad.innerHTML="";
   keys.forEach(k=>{
     const b=document.createElement("button");
-    b.textContent = (k==="±") ? "＋/−" : k;
+    b.textContent = (k==="±") ? "−/+" : k;
     b.onclick = ()=>padInput(k);
     pad.appendChild(b);
   });
@@ -399,6 +400,7 @@ function nextQ(){
   document.getElementById("feedback").className="feedback";
   document.getElementById("nextBtn").style.display="none";
   document.getElementById("checkBtn").style.display="";
+  document.getElementById("pad").style.display="";   // 出題中はテンキー表示
   qStart = Date.now();
 }
 
@@ -432,6 +434,7 @@ function check(){
   inp.disabled=true;
   updateStat();
   document.getElementById("checkBtn").style.display="none";
+  document.getElementById("pad").style.display="none";   // 解答後はテンキー非表示
   document.getElementById("nextBtn").style.display="";
   document.getElementById("nextBtn").focus();
 }
