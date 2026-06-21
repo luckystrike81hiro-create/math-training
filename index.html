@@ -81,18 +81,32 @@
   }
   .praise.show{opacity:1; animation:pop .6s;}
   @keyframes pop{0%{transform:translateX(-50%) scale(.5);}50%{transform:translateX(-50%) scale(1.2);}100%{transform:translateX(-50%) scale(1);}}
+  /* 単元えらぶ（タイム計測） */
+  .unit-btn.on{border-color:var(--main); background:#eef3ff; box-shadow:0 0 0 3px rgba(74,125,255,.15) inset;}
+  .select-msg{text-align:center; color:var(--ng); font-size:.85rem; min-height:1.2em; margin:6px 0;}
+  /* けっか画面 */
+  .result h2{text-align:center; margin:4px 0 10px;}
+  .result-summary{text-align:center; font-size:1.05rem; margin:6px 0 16px; color:var(--ink);}
+  .res-row{padding:12px 0; border-bottom:1px solid var(--line);}
+  .res-row:last-child{border-bottom:none;}
+  .res-head{display:flex; align-items:center; gap:8px; font-size:1rem; flex-wrap:wrap;}
+  .badge{background:#fff3e0; color:#d98a00; font-size:.7rem; font-weight:700; padding:2px 8px; border-radius:999px;}
+  .res-meta{color:var(--sub); font-size:.8rem; margin:4px 0 6px;}
+  .bar{background:var(--bg); border-radius:6px; height:8px; overflow:hidden;}
+  .bar span{display:block; height:100%; background:var(--main); border-radius:6px;}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <h1>📐 中1数学トレーニング</h1>
-    <p>基礎をコツコツ。まちがえても大丈夫！　v0.2</p>
+    <p>基礎をコツコツ。まちがえても大丈夫！　v0.3</p>
   </header>
 
   <!-- メニュー -->
   <div id="menu" class="card">
     <div class="menu-grid" id="menuGrid"></div>
+    <button class="btn btn-wide" onclick="goSelect()" style="margin-top:14px;">🏁 えらんで挑戦（タイム計測・12問）</button>
     <p class="footer-note">単元をえらんでスタート！</p>
   </div>
 
@@ -112,6 +126,28 @@
     <div class="pad" id="pad"></div>
     <div class="feedback" id="feedback"></div>
     <button class="btn btn-wide" id="nextBtn" style="display:none;" onclick="nextQ()">つぎの問題 →</button>
+  </div>
+
+  <!-- 単元えらぶ（タイム計測モード） -->
+  <div id="select" class="card" style="display:none;">
+    <div class="topbar">
+      <button class="back" onclick="goMenu()">← もどる</button>
+      <span class="stat">🏁 タイム計測モード</span>
+    </div>
+    <p style="text-align:center; color:var(--sub); font-size:.85rem; margin:4px 0 12px;">といてみたい単元をえらんでね（複数OK）<br>えらんだ単元から合計12問・時間をはかります</p>
+    <div class="menu-grid" id="selectGrid"></div>
+    <p class="select-msg" id="selectMsg"></p>
+    <button class="btn btn-wide" id="startMixBtn" onclick="startMix()">この単元でスタート →</button>
+  </div>
+
+  <!-- けっか画面 -->
+  <div id="result" class="card result" style="display:none;">
+    <h2>🏁 けっか</h2>
+    <div class="result-summary" id="resultSummary"></div>
+    <div id="resultRows"></div>
+    <p class="footer-note" style="margin-top:12px;">バーが長い＝時間がかかった単元。にがての目安にしてね。</p>
+    <button class="btn btn-wide" onclick="retryMix()">同じ単元でもういちど</button>
+    <button class="btn btn-wide" onclick="goMenu()" style="margin-top:8px; background:var(--sub);">メニューにもどる</button>
   </div>
 </div>
 <div class="praise" id="praise"></div>
@@ -199,6 +235,9 @@ function genHirei(){
 
 /* ===== 状態 ===== */
 let cur=null, curUnit=null, score=0, total=0, streak=0, answered=false;
+let mode="single";                 // "single"=単元別練習 / "mix"=タイム計測
+let mixUnits=[], mixQueue=[], mixIdx=0, qStart=0, stats={};
+const MIX_N=12;                    // タイム計測モードの出題数（合計）
 
 /* ===== メニュー描画 ===== */
 function buildMenu(){
@@ -214,6 +253,7 @@ function buildMenu(){
 }
 
 function startUnit(u){
+  mode="single";
   curUnit=u; score=0; total=0; streak=0;
   document.getElementById("menu").style.display="none";
   document.getElementById("quiz").style.display="block";
@@ -223,8 +263,90 @@ function startUnit(u){
 }
 
 function goMenu(){
-  document.getElementById("quiz").style.display="none";
+  ["quiz","select","result"].forEach(id=>document.getElementById(id).style.display="none");
   document.getElementById("menu").style.display="block";
+  mode="single";
+}
+
+/* ===== タイム計測モード ===== */
+function goSelect(){
+  document.getElementById("menu").style.display="none";
+  document.getElementById("result").style.display="none";
+  document.getElementById("select").style.display="block";
+  document.getElementById("selectMsg").textContent="";
+  buildSelect();
+}
+
+function buildSelect(){
+  const g=document.getElementById("selectGrid");
+  g.innerHTML="";
+  UNITS.forEach(u=>{
+    const b=document.createElement("button");
+    b.className="unit-btn"; b.dataset.id=u.id;
+    b.innerHTML = `<span class="emoji">${u.emoji}</span>${u.name}<span class="lv">${u.lv}</span>`;
+    b.onclick = ()=>b.classList.toggle("on");
+    g.appendChild(b);
+  });
+}
+
+function startMix(){
+  const selected=[...document.querySelectorAll('#selectGrid .unit-btn.on')]
+    .map(b=>UNITS.find(u=>u.id===b.dataset.id));
+  if(selected.length===0){
+    document.getElementById("selectMsg").textContent="単元をひとつ以上えらんでね";
+    return;
+  }
+  mixUnits=selected;
+  launchMix();
+}
+
+function launchMix(){
+  mode="mix"; score=0; total=0; streak=0; mixIdx=0; stats={};
+  mixUnits.forEach(u=> stats[u.id]={name:u.name, emoji:u.emoji, time:0, count:0, correct:0});
+  // えらんだ単元を均等に並べてからシャッフル（合計MIX_N問）
+  mixQueue=[]; let i=0;
+  while(mixQueue.length<MIX_N){ mixQueue.push(mixUnits[i%mixUnits.length]); i++; }
+  for(let j=mixQueue.length-1;j>0;j--){
+    const k=Math.floor(Math.random()*(j+1));
+    const t=mixQueue[j]; mixQueue[j]=mixQueue[k]; mixQueue[k]=t;
+  }
+  ["menu","select","result"].forEach(id=>document.getElementById(id).style.display="none");
+  document.getElementById("quiz").style.display="block";
+  updateStat();
+  nextQ();
+}
+
+function retryMix(){ launchMix(); }
+
+function fmt(ms){
+  const s=ms/1000;
+  if(s<60) return s.toFixed(1)+"秒";
+  const m=Math.floor(s/60);
+  return m+"分"+Math.round(s%60)+"秒";
+}
+
+function showResult(){
+  document.getElementById("quiz").style.display="none";
+  document.getElementById("result").style.display="block";
+  const rows = mixUnits.map(u=>stats[u.id]).filter(s=>s.count>0);
+  rows.sort((a,b)=> (b.time/b.count)-(a.time/a.count)); // 平均が遅い順
+  const maxAvg = rows.length ? rows[0].time/rows[0].count : 1;
+  let totMs=0, totC=0, totN=0;
+  rows.forEach(s=>{ totMs+=s.time; totC+=s.correct; totN+=s.count; });
+  document.getElementById("resultSummary").innerHTML =
+    `正解 <b>${totC}/${totN}</b>　合計タイム <b>${fmt(totMs)}</b>`;
+  const box=document.getElementById("resultRows");
+  box.innerHTML="";
+  rows.forEach((s,idx)=>{
+    const avg=s.time/s.count;
+    const badge = (idx===0 && rows.length>1) ? '<span class="badge">⏰ いちばん時間がかかった</span>' : '';
+    box.innerHTML +=
+      `<div class="res-row">
+         <div class="res-head"><b>${s.emoji} ${s.name}</b>${badge}</div>
+         <div class="res-meta">平均 ${(avg/1000).toFixed(1)}秒/問・合計 ${fmt(s.time)}・正答 ${s.correct}/${s.count}</div>
+         <div class="bar"><span style="width:${Math.max(6,Math.round(avg/maxAvg*100))}%"></span></div>
+       </div>`;
+  });
 }
 
 /* ===== テンキー（符号・xボタン付き） ===== */
@@ -254,6 +376,13 @@ function padInput(k){
 
 /* ===== 出題 ===== */
 function nextQ(){
+  if(mode==="mix"){
+    if(mixIdx>=mixQueue.length){ showResult(); return; }
+    curUnit = mixQueue[mixIdx]; mixIdx++;
+    buildPad(curUnit.id);
+    document.getElementById("unitName").textContent =
+      `🏁 ${curUnit.emoji} ${curUnit.name}　(${mixIdx}/${mixQueue.length})`;
+  }
   answered=false;
   cur = curUnit.gen();
   document.getElementById("question").textContent = cur.q;
@@ -264,6 +393,7 @@ function nextQ(){
   document.getElementById("feedback").className="feedback";
   document.getElementById("nextBtn").style.display="none";
   document.getElementById("checkBtn").style.display="";
+  qStart = Date.now();
 }
 
 function norm(s){ return s.replace(/\s/g,"").replace(/＋/g,"+").replace(/−/g,"-").replace(/ｘ|Ｘ|X/g,"x"); }
@@ -276,7 +406,12 @@ function check(){
   answered=true; total++;
   const fb=document.getElementById("feedback");
   const correct = norm(cur.a);
-  if(user===correct){
+  const isOK = (user===correct);
+  if(mode==="mix"){
+    const s=stats[curUnit.id];
+    if(s){ s.time += Date.now()-qStart; s.count++; if(isOK) s.correct++; }
+  }
+  if(isOK){
     score++; streak++;
     fb.className="feedback ok";
     fb.innerHTML = pick(["せいかい！🎉","よくできました！⭐","その調子！💪","バッチリ！✨"]) +
